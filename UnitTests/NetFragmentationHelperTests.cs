@@ -108,8 +108,8 @@ public sealed class NetFragmentationHelperTests
 		peer.Configuration.MaximumFragmentReassemblyBytesPerConnection = 100;
 		var connection = CreateConnection(peer);
 
-		peer.ReleaseMessage(CreateFragment(connection, group: 1, totalBytes: 20, chunkByteSize: 10, chunkNumber: 0, payloadBytes: 5));
-		peer.ReleaseMessage(CreateFragment(connection, group: 2, totalBytes: 20, chunkByteSize: 10, chunkNumber: 0, payloadBytes: 5));
+		peer.ReleaseMessage(CreateFragment(connection, group: 1, totalBytes: 15, chunkByteSize: 10, chunkNumber: 1, payloadBytes: 5));
+		peer.ReleaseMessage(CreateFragment(connection, group: 2, totalBytes: 15, chunkByteSize: 10, chunkNumber: 1, payloadBytes: 5));
 
 		Assert.Multiple(() =>
 		{
@@ -130,12 +130,12 @@ public sealed class NetFragmentationHelperTests
 			peer.Configuration.FragmentGroupTimeout = 0.1f;
 			var connection = CreateConnection(peer);
 
-			peer.ReleaseMessage(CreateFragment(connection, group: 1, totalBytes: 20, chunkByteSize: 10, chunkNumber: 0, payloadBytes: 5));
+			peer.ReleaseMessage(CreateFragment(connection, group: 1, totalBytes: 15, chunkByteSize: 10, chunkNumber: 1, payloadBytes: 5));
 
 			double advancedNow = originalNow + 1.0;
 			NetTime.SetNow(advancedNow);
 
-			peer.ReleaseMessage(CreateFragment(connection, group: 2, totalBytes: 20, chunkByteSize: 10, chunkNumber: 0, payloadBytes: 5));
+			peer.ReleaseMessage(CreateFragment(connection, group: 2, totalBytes: 15, chunkByteSize: 10, chunkNumber: 1, payloadBytes: 5));
 
 			Assert.Multiple(() =>
 			{
@@ -155,7 +155,7 @@ public sealed class NetFragmentationHelperTests
 	{
 		var peer = CreatePeer(nameof(ReassemblyDoesNotAllocateClaimedGroupSize));
 		var connection = CreateConnection(peer);
-		var fragment = CreateFragment(connection, group: 1, totalBytes: 16 * 1024 * 1024 - 1, chunkByteSize: 8000, chunkNumber: 0, payloadBytes: 100);
+		var fragment = CreateFragment(connection, group: 1, totalBytes: 16 * 1024 * 1024 - 1, chunkByteSize: 100, chunkNumber: 0, payloadBytes: 100);
 
 		long before = GC.GetAllocatedBytesForCurrentThread();
 		peer.ReleaseMessage(fragment);
@@ -176,7 +176,7 @@ public sealed class NetFragmentationHelperTests
 		peer.Configuration.MaximumFragmentReassemblyBytesPerConnection = 1000;
 		var connection = CreateConnection(peer);
 
-		peer.ReleaseMessage(CreateFragment(connection, group: 1, totalBytes: 2000, chunkByteSize: 10, chunkNumber: 0, payloadBytes: 5));
+		peer.ReleaseMessage(CreateFragment(connection, group: 1, totalBytes: 2000, chunkByteSize: 10, chunkNumber: 0, payloadBytes: 10));
 
 		Assert.That(connection.m_receivedFragmentGroups, Is.Empty);
 	}
@@ -189,14 +189,28 @@ public sealed class NetFragmentationHelperTests
 		var first = CreateConnection(peer, 1);
 		var second = CreateConnection(peer, 2);
 
-		peer.ReleaseMessage(CreateFragment(first, group: 1, totalBytes: 20, chunkByteSize: 10, chunkNumber: 0, payloadBytes: 5));
-		peer.ReleaseMessage(CreateFragment(second, group: 1, totalBytes: 20, chunkByteSize: 10, chunkNumber: 0, payloadBytes: 5));
+		peer.ReleaseMessage(CreateFragment(first, group: 1, totalBytes: 15, chunkByteSize: 10, chunkNumber: 1, payloadBytes: 5));
+		peer.ReleaseMessage(CreateFragment(second, group: 1, totalBytes: 15, chunkByteSize: 10, chunkNumber: 1, payloadBytes: 5));
 
 		Assert.Multiple(() =>
 		{
 			Assert.That(first.m_receivedFragmentGroups.ContainsKey(1), Is.True);
 			Assert.That(second.m_receivedFragmentGroups, Is.Empty);
 		});
+	}
+
+	[Test]
+	public void ReassemblyDropsShortChunks()
+	{
+		var peer = CreatePeer(nameof(ReassemblyDropsShortChunks));
+		var connection = CreateConnection(peer);
+
+		// 1 byte chunks would complete a huge group with tiny traffic
+		peer.ReleaseMessage(CreateFragment(connection, group: 1, totalBytes: 25, chunkByteSize: 10, chunkNumber: 0, payloadBytes: 1));
+		// last chunk must be exactly the remainder
+		peer.ReleaseMessage(CreateFragment(connection, group: 2, totalBytes: 25, chunkByteSize: 10, chunkNumber: 2, payloadBytes: 4));
+
+		Assert.That(connection.m_receivedFragmentGroups, Is.Empty);
 	}
 
 	[Test]
@@ -233,7 +247,7 @@ public sealed class NetFragmentationHelperTests
 		peer.Configuration.FragmentGroupTimeout = 0.1f;
 		var connection = CreateConnection(peer);
 
-		peer.ReleaseMessage(CreateFragment(connection, group: 1, totalBytes: 20, chunkByteSize: 10, chunkNumber: 0, payloadBytes: 5));
+		peer.ReleaseMessage(CreateFragment(connection, group: 1, totalBytes: 15, chunkByteSize: 10, chunkNumber: 1, payloadBytes: 5));
 		peer.ExpireFragmentGroups(connection, NetTime.Now + 1.0);
 
 		Assert.Multiple(() =>

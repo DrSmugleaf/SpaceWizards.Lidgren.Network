@@ -127,7 +127,10 @@ namespace Lidgren.Network
 
 			if (chunkNumber < 0
 				|| chunkNumber >= totalNumChunks
-				|| (long)chunkNumber * chunkByteSize + payloadLength > totalBytes)
+				|| (long)chunkNumber * chunkByteSize + payloadLength > totalBytes
+				// Starlight-edit: every chunk but the last is exactly chunkByteSize and the last one is exactly the remainder,
+				// otherwise 1 byte chunks complete a 16 MiB group with ~40 KB of traffic and gaps leak stale pool data
+				|| payloadLength != Math.Min(chunkByteSize, totalBytes - chunkNumber * chunkByteSize))
 			{
 				LogRateLimitedWarning(NetLogRateLimitTarget.MalformedFragment, im.SenderEndPoint, $"Dropping out-of-range fragment {chunkNumber}/{totalNumChunks} from {im.SenderEndPoint}");
 				Recycle(im);
