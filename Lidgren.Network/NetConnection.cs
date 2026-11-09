@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
@@ -179,7 +179,8 @@ namespace Lidgren.Network
 					MTUExpansionHeartbeat(now);
 				}
 
-				m_peer.ExpireFragmentGroups(this, now); // Starlight-edit: expire stale fragment groups even if the remote stops sending fragments
+				// release stale fragment groups even if the remote stops sending fragments
+				m_peer.ExpireFragmentGroups(m_receivedFragmentGroups, now);
 
 				if (m_disconnectRequested)
 				{

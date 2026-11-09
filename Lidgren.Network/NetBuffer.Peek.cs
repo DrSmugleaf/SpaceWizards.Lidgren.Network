@@ -1,4 +1,4 @@
-/* Copyright (c) 2010 Michael Lidgren
+﻿/* Copyright (c) 2010 Michael Lidgren
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software
 and associated documentation files (the "Software"), to deal in the Software without
@@ -96,10 +96,8 @@ namespace Lidgren.Network
 		/// </summary>
 		public byte[] PeekBytes(int numberOfBytes)
 		{
-			// Starlight-start: validate the remote supplied length before allocating
-			if (numberOfBytes < 0 || m_bitLength - m_readPosition < numberOfBytes * 8L)
+			if (numberOfBytes < 0 || (long)(m_bitLength - m_readPosition) < (long)numberOfBytes * 8)
 				throw new NetException(c_readOverflowError);
-			// Starlight-end
 
 			var retVal = new byte[numberOfBytes];
 

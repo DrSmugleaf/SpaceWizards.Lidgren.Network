@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Reflection;
@@ -94,11 +94,8 @@ namespace Lidgren.Network
 		/// </summary>
 		public byte[] ReadBytes(int numberOfBytes)
 		{
-			// Starlight-start: validate the remote supplied length before allocating,
-			// otherwise a tiny message with a huge length prefix allocates up to 2 GiB
-			if (numberOfBytes < 0 || m_bitLength - m_readPosition + 7L < numberOfBytes * 8L)
+			if (numberOfBytes < 0 || (long)(m_bitLength - m_readPosition) + 7 < (long)numberOfBytes * 8)
 				throw new NetException(c_readOverflowError);
-			// Starlight-end
 
 			var retVal = new byte[numberOfBytes];
 			ReadBytes(retVal);
@@ -110,8 +107,7 @@ namespace Lidgren.Network
 		/// </summary>
 		public bool ReadBytes(int numberOfBytes, [MaybeNullWhen(false)] out byte[] result)
 		{
-			// Starlight: long math, numberOfBytes * 8 overflows int and passed the check
-			if (numberOfBytes < 0 || m_bitLength - m_readPosition + 7L < numberOfBytes * 8L)
+			if (numberOfBytes < 0 || (long)(m_bitLength - m_readPosition) + 7 < (long)numberOfBytes * 8)
 			{
 				result = null;
 				return false;

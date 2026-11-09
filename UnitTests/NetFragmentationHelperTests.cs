@@ -108,8 +108,8 @@ public sealed class NetFragmentationHelperTests
 		peer.Configuration.MaximumFragmentReassemblyBytesPerConnection = 100;
 		var connection = CreateConnection(peer);
 
-		peer.ReleaseMessage(CreateFragment(connection, group: 1, totalBytes: 15, chunkByteSize: 10, chunkNumber: 1, payloadBytes: 5));
-		peer.ReleaseMessage(CreateFragment(connection, group: 2, totalBytes: 15, chunkByteSize: 10, chunkNumber: 1, payloadBytes: 5));
+		peer.ReleaseMessage(CreateFragment(connection, group: 1, totalBytes: 20, chunkByteSize: 10, chunkNumber: 0, payloadBytes: 10));
+		peer.ReleaseMessage(CreateFragment(connection, group: 2, totalBytes: 20, chunkByteSize: 10, chunkNumber: 0, payloadBytes: 10));
 
 		Assert.Multiple(() =>
 		{
@@ -130,12 +130,12 @@ public sealed class NetFragmentationHelperTests
 			peer.Configuration.FragmentGroupTimeout = 0.1f;
 			var connection = CreateConnection(peer);
 
-			peer.ReleaseMessage(CreateFragment(connection, group: 1, totalBytes: 15, chunkByteSize: 10, chunkNumber: 1, payloadBytes: 5));
+			peer.ReleaseMessage(CreateFragment(connection, group: 1, totalBytes: 20, chunkByteSize: 10, chunkNumber: 0, payloadBytes: 10));
 
 			double advancedNow = originalNow + 1.0;
 			NetTime.SetNow(advancedNow);
 
-			peer.ReleaseMessage(CreateFragment(connection, group: 2, totalBytes: 15, chunkByteSize: 10, chunkNumber: 1, payloadBytes: 5));
+			peer.ReleaseMessage(CreateFragment(connection, group: 2, totalBytes: 20, chunkByteSize: 10, chunkNumber: 0, payloadBytes: 10));
 
 			Assert.Multiple(() =>
 			{
@@ -148,6 +148,17 @@ public sealed class NetFragmentationHelperTests
 		{
 			NetTime.SetNow(originalNow);
 		}
+	}
+
+	[Test]
+	public void ReassemblyDropsShortChunks()
+	{
+		var peer = CreatePeer(nameof(ReassemblyDropsShortChunks));
+		var connection = CreateConnection(peer);
+
+		peer.ReleaseMessage(CreateFragment(connection, group: 1, totalBytes: 20, chunkByteSize: 10, chunkNumber: 0, payloadBytes: 5));
+
+		Assert.That(connection.m_receivedFragmentGroups.ContainsKey(1), Is.False);
 	}
 
 	[Test]

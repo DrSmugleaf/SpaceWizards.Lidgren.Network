@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Collections.Generic;
 
@@ -125,12 +125,16 @@ namespace Lidgren.Network
 
 			NetException.Assert(chunkNumber < totalNumChunks);
 
+			// Every chunk but the last must be exactly chunkByteSize and the last must
+			// be exactly the remainder. Otherwise tiny chunks could "complete" a large
+			// group with little traffic, exposing stale pooled buffer contents.
+			int expectedPayload = chunkNumber == totalNumChunks - 1
+				? totalBytes - (totalNumChunks - 1) * chunkByteSize
+				: chunkByteSize;
+
 			if (chunkNumber < 0
 				|| chunkNumber >= totalNumChunks
-				|| (long)chunkNumber * chunkByteSize + payloadLength > totalBytes
-				// Starlight-edit: every chunk but the last is exactly chunkByteSize and the last one is exactly the remainder,
-				// otherwise 1 byte chunks complete a 16 MiB group with ~40 KB of traffic and gaps leak stale pool data
-				|| payloadLength != Math.Min(chunkByteSize, totalBytes - chunkNumber * chunkByteSize))
+				|| payloadLength != expectedPayload)
 			{
 				LogRateLimitedWarning(NetLogRateLimitTarget.MalformedFragment, im.SenderEndPoint, $"Dropping out-of-range fragment {chunkNumber}/{totalNumChunks} from {im.SenderEndPoint}");
 				Recycle(im);
@@ -248,8 +252,7 @@ namespace Lidgren.Network
 			return;
 		}
 
-		// Starlight-edit: also called from the connection heartbeat, so groups expire even if the remote stops sending fragments
-		internal void ExpireFragmentGroups(NetConnection connection, double now)
+		internal void ExpireFragmentGroups(Dictionary<int, ReceivedFragmentGroup> groups, double now)
 		{
 			var groups = connection.m_receivedFragmentGroups; // Starlight-edit
 			if (groups.Count == 0)
