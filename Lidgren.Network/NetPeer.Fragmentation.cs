@@ -252,7 +252,7 @@ namespace Lidgren.Network
 			return;
 		}
 
-		internal void ExpireFragmentGroups(Dictionary<int, ReceivedFragmentGroup> groups, double now)
+		internal void ExpireFragmentGroups(NetConnection connection, double now)
 		{
 			var groups = connection.m_receivedFragmentGroups; // Starlight-edit
 			if (groups.Count == 0)

@@ -180,7 +180,7 @@ namespace Lidgren.Network
 				}
 
 				// release stale fragment groups even if the remote stops sending fragments
-				m_peer.ExpireFragmentGroups(m_receivedFragmentGroups, now);
+				m_peer.ExpireFragmentGroups(this, now);
 
 				if (m_disconnectRequested)
 				{
